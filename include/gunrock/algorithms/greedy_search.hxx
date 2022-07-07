@@ -5,7 +5,7 @@
 #include <gunrock/algorithms/algorithms.hxx>
  
 namespace gunrock {
-namespace sample_bfs {
+namespace greedy_search {
  
 //defining the template to specify our graph parameters i.e. our variable. Typename is a like datatype that is predefined in the gunrock library, here we use vertex_t
 template <typename vertex_t>

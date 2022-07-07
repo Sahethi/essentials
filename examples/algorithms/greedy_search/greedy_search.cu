@@ -1,5 +1,5 @@
-#include <gunrock/algorithms/sample_bfs.h>
-#include "sample_bfs_cpu.h"
+#include <gunrock/algorithms/greedy_search.hxx>
+#include "greedy_search_cpu.hxx"
  
 using namespace gunrock;
 using namespace memory;
