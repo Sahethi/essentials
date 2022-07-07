@@ -1,5 +1,5 @@
 # begin /* Set the application name. */
-set(APPLICATION_NAME color)
+set(APPLICATION_NAME greedy_search)
 # end /* Set the application name. */
 
 # begin /* Add CUDA executables */

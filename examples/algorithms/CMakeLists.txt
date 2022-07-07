@@ -1,6 +1,7 @@
 # begin /* Add algorithms' subdirectories */
 add_subdirectory(sssp)
 add_subdirectory(bfs)
+add_subdirectory(greedy_search)
 add_subdirectory(color)
 add_subdirectory(geo)
 add_subdirectory(pr)
