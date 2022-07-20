@@ -6,9 +6,24 @@ using namespace std;
 using namespace gunrock;
 using namespace memory;
 
-void test_greedy_search(int num_arguments, char** argument_array) {
-  if (num_arguments != 2) {
-     cerr << "usage: ./bin/<program-name> filename.mtx" <<  endl;
+vector<double> calculate_distances(int x, int y){
+  ifstream infile("/content/essentials/examples/algorithms/greedy_search/points.txt");
+  string line;
+  vector<double> euclidean;
+  while (getline(infile, line)) {
+      istringstream iss(line);
+      int a, b;
+      if (!(iss >> a >> b)) { break; } // error
+      double dist = sqrt(pow(x-a, 2) + pow(y-b, 2));
+      euclidean.push_back(dist);
+  }
+
+  return euclidean;
+}
+
+void test_greedy_search(int num_arguments, char** argument_array, vector<double> euclidean_distances) {
+  if (num_arguments != 4) {
+     cerr << "usage: ./bin/<program-name> filename.mtx x y" <<  endl;
     exit(1);
   }
 
@@ -78,7 +93,7 @@ void test_greedy_search(int num_arguments, char** argument_array) {
   int num_runs = 5;
 
   for (auto i = 0; i < num_runs; i++)
-    gpu_elapsed += gunrock::greedy_search::run(G, single_source, distances.data().get(),
+    gpu_elapsed += gunrock::greedy_search::run(G, single_source, euclidean_distances, distances.data().get(),
                                       predecessors.data().get());
 
   gpu_elapsed /= num_runs;
@@ -90,7 +105,7 @@ void test_greedy_search(int num_arguments, char** argument_array) {
   thrust::host_vector<vertex_t> h_predecessors(n_vertices);
 
   float cpu_elapsed = greedy_search_cpu::run<csr_t, vertex_t, edge_t, weight_t>(
-      csr, single_source, h_distances.data(), h_predecessors.data());
+      csr, single_source, euclidean_distances, h_distances.data(), h_predecessors.data());
 
   int n_errors =
       util::compare(distances.data().get(), h_distances.data(), n_vertices);
@@ -107,11 +122,11 @@ void test_greedy_search(int num_arguments, char** argument_array) {
 }
 
 int main(int argc, char** argv) {
-  test_greedy_search(argc, argv);
-  ifstream infile("points.txt");
-  while (std::getline(infile, line)) {
-      std::istringstream iss(line);
-      int a, b;
-      if (!(iss >> a >> b)) { break; } // error
-  }
+  // int x = 10, y = 4;
+  vector<double> euclidean;
+  int x = atoi(argv[2]);
+  int y = atoi(argv[3]);
+  euclidean = calculate_distances(10, 4);
+
+  test_greedy_search(argc, argv, euclidean);
 }
