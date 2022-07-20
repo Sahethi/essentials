@@ -1,12 +1,19 @@
 #include <gunrock/algorithms/greedy_search.hxx>
 #include "greedy_search_cpu.hxx"  // Reference implementation
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <cctype>
+#include <sstream>
+#include <stdexcept>
 
+using namespace std;
 using namespace gunrock;
 using namespace memory;
 
 void test_greedy_search(int num_arguments, char** argument_array) {
   if (num_arguments != 2) {
-    std::cerr << "usage: ./bin/<program-name> filename.mtx" << std::endl;
+     cerr << "usage: ./bin/<program-name> filename.mtx" <<  endl;
     exit(1);
   }
 
@@ -24,7 +31,7 @@ void test_greedy_search(int num_arguments, char** argument_array) {
   // IO
 
   csr_t csr;
-  std::string filename = argument_array[1];
+   string filename = argument_array[1];
 
   if (util::is_market(filename)) {
     io::matrix_market_t<vertex_t, edge_t, weight_t> mm;
@@ -32,7 +39,7 @@ void test_greedy_search(int num_arguments, char** argument_array) {
   } else if (util::is_binary_csr(filename)) {
     csr.read_binary(filename);
   } else {
-    std::cerr << "Unknown file format: " << filename << std::endl;
+     cerr << "Unknown file format: " << filename <<  endl;
     exit(1);
   }
 
@@ -54,7 +61,7 @@ void test_greedy_search(int num_arguments, char** argument_array) {
 
   vertex_t n_vertices = G.get_number_of_vertices();
   vertex_t single_source = 0;  // rand() % n_vertices;
-  std::cout << "Single Source = " << single_source << std::endl;
+   cout << "Single Source = " << single_source <<  endl;
 
   // --
   // GPU Run
@@ -99,11 +106,13 @@ void test_greedy_search(int num_arguments, char** argument_array) {
   print::head(distances, 40, "GPU distances");
   print::head(h_distances, 40, "CPU Distances");
 
-  std::cout << "GPU Elapsed Time : " << gpu_elapsed << " (ms)" << std::endl;
-  std::cout << "CPU Elapsed Time : " << cpu_elapsed << " (ms)" << std::endl;
-  std::cout << "Number of errors : " << n_errors << std::endl;
+   cout << "GPU Elapsed Time : " << gpu_elapsed << " (ms)" <<  endl;
+   cout << "CPU Elapsed Time : " << cpu_elapsed << " (ms)" <<  endl;
+   cout << "Number of errors : " << n_errors <<  endl;
 }
 
 int main(int argc, char** argv) {
   test_greedy_search(argc, argv);
+
+
 }
