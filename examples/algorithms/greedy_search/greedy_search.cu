@@ -1,11 +1,6 @@
 #include <gunrock/algorithms/greedy_search.hxx>
 #include "greedy_search_cpu.hxx"  // Reference implementation
-#include <iostream>
 #include <fstream>
-#include <string>
-#include <cctype>
-#include <sstream>
-#include <stdexcept>
 
 using namespace std;
 using namespace gunrock;
@@ -113,6 +108,10 @@ void test_greedy_search(int num_arguments, char** argument_array) {
 
 int main(int argc, char** argv) {
   test_greedy_search(argc, argv);
-
-
+  ifstream infile("points.txt");
+  while (std::getline(infile, line)) {
+      std::istringstream iss(line);
+      int a, b;
+      if (!(iss >> a >> b)) { break; } // error
+  }
 }
