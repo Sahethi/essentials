@@ -1,66 +1,38 @@
-//pragma once is used to reduce the build time as the compiler won’t open and read the file again after the first #include 
+/**
+ * @file sssp.hxx
+ * @author Muhammad Osama (mosama@ucdavis.edu)
+ * @brief Single-Source Shortest Path algorithm.
+ * @version 0.1
+ * @date 2020-10-05
+ *
+ * @copyright Copyright (c) 2020
+ *
+ */
 #pragma once
- 
-//it’s just a base header file used by gunrock when defining a new graph primitive 
+
 #include <gunrock/algorithms/algorithms.hxx>
- 
+
 namespace gunrock {
 namespace greedy_search {
- 
-struct points_t{
-    float x, y;
-    float distance;
-};
 
-bool comparison(points_t a, points_t b){
-    return (a.distance < b.distance);
-}
-
-template <typename graph_t, typename vertex_t = typename graph_t::vertex_type> 
-__device__ __host__ void greedySearch(graph_t const& G,
-                                       points_t const* points,
-                                       int n, int k, points_t xq
-                                       vertex_t const& v) {
-  // Calculate distance
-
-    auto start_edge = G.get_starting_edge(v);
-    auto num_neighbors = G.get_number_of_neighbors(v);
-
-    for (auto e = start_edge; e < start_edge + num_neighbors; e++) {
-    vertex_t u = G.get_destination_vertex(e);
-    points[u].distance = (points[u].x - xq.x) * (points[u].x - xq.x) + (points[u].y - xq.y) * (points[u].y - xq.y);
-    }
-
-    std::sort(points, points+n, comparison);
-
-    for (auto e = start_edge; e < start_edge + num_neighbors; e++) {
-    vertex_t u = G.get_destination_vertex(e);
-    cout << "x = " << points[u].x ;
-    cout << " ; y = " << points[u].y << "\n";
-    }
-
-}
-
+template <typename vertex_t>
 struct param_t {
   vertex_t single_source;
   param_t(vertex_t _single_source) : single_source(_single_source) {}
 };
 
+template <typename vertex_t, typename weight_t>
 struct result_t {
-  points_t* points;
-  result_t(points_t* _points) : points(_points) {}
+  weight_t* distances;
+  vertex_t* predecessors;
+  result_t(weight_t* _distances, vertex_t* _predecessors, vertex_t n_vertices)
+      : distances(_distances), predecessors(_predecessors) {}
 };
 
 template <typename graph_t, typename param_type, typename result_type>
 struct problem_t : gunrock::problem_t<graph_t> {
   param_type param;
   result_type result;
-
-  using vertex_t = typename graph_t::vertex_type;
-  using edge_t = typename graph_t::edge_type;
-  using weight_t = typename graph_t::weight_type;
-
-  thrust::device_vector<vertex_t> visited;
 
   problem_t(graph_t& G,
             param_type& _param,
@@ -70,15 +42,41 @@ struct problem_t : gunrock::problem_t<graph_t> {
         param(_param),
         result(_result) {}
 
+  using vertex_t = typename graph_t::vertex_type;
+  using edge_t = typename graph_t::edge_type;
+  using weight_t = typename graph_t::weight_type;
+
+  thrust::device_vector<vertex_t> visited;
+
   void init() override {
     auto g = this->get_graph();
-    auto n_edges = g.get_number_of_edges();
+    auto n_vertices = g.get_number_of_vertices();
+    visited.resize(n_vertices);
+
+    // Execution policy for a given context (using single-gpu).
+    auto policy = this->context->get_context(0)->execution_policy();
+    thrust::fill(policy, visited.begin(), visited.end(), -1);
   }
 
   void reset() override {
+    auto g = this->get_graph();
+    auto n_vertices = g.get_number_of_vertices();
+
+    auto context = this->get_single_context();
+    auto policy = context->execution_policy();
+
+    auto single_source = this->param.single_source;
+    auto d_distances = thrust::device_pointer_cast(this->result.distances);
+    thrust::fill(policy, d_distances + 0, d_distances + n_vertices,
+                 std::numeric_limits<weight_t>::max());
+
+    thrust::fill(policy, d_distances + single_source,
+                 d_distances + single_source + 1, 0);
+
+    thrust::fill(policy, visited.begin(), visited.end(),
+                 -1);  // This does need to be reset in between runs though
   }
 };
-
 
 template <typename problem_t>
 struct enactor_t : gunrock::enactor_t<problem_t> {
@@ -109,32 +107,47 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 
     auto iteration = this->iteration;
 
-    auto search = [distances, single_source, iteration] __host__ __device__(
-                      vertex_t const& source,    // ... source
-                      vertex_t const& neighbor,  // neighbor
-                      edge_t const& edge,        // edge
-                      weight_t const& weight     // weight (tuple).
-                      ) -> bool {
+    auto shortest_path = [distances, single_source] __host__ __device__(
+                             vertex_t const& source,    // ... source
+                             vertex_t const& neighbor,  // neighbor
+                             edge_t const& edge,        // edge
+                             weight_t const& weight     // weight (tuple).
+                             ) -> bool {
+      weight_t source_distance = thread::load(&distances[source]);
+      weight_t distance_to_neighbor = source_distance + weight;
 
-      // Simpler logic for the above.
-      auto old_distance =
-          math::atomic::min(&distances[neighbor], iteration + 1);
-      return (iteration + 1 < old_distance);
+      // Check if the destination node has been claimed as someone's child
+      weight_t recover_distance =
+          math::atomic::min(&(distances[neighbor]), distance_to_neighbor);
+
+      return (distance_to_neighbor < recover_distance);
     };
 
-    auto remove_invalids =
-        [] __host__ __device__(vertex_t const& vertex) -> bool {
+    auto remove_completed_paths = [G, visited, iteration] __host__ __device__(
+                                      vertex_t const& vertex) -> bool {
+      if (visited[vertex] == iteration)
+        return false;
+
+      visited[vertex] = iteration;
+      /// @todo Confirm we do not need the following for bug
+      /// https://github.com/gunrock/essentials/issues/9 anymore.
+      // return G.get_number_of_neighbors(vertex) > 0;
       return true;
     };
 
     // Execute advance operator on the provided lambda
     operators::advance::execute<operators::load_balance_t::block_mapped>(
-        G, E, search, context);
+        G, E, shortest_path, context);
 
-    // Execute filter operator to remove the invalids.
-    // @todo: Add CLI option to enable or disable this.
-    // operators::filter::execute<operators::filter_algorithm_t::compact>(
-    // G, E, remove_invalids, context);
+    // Execute filter operator on the provided lambda
+    operators::filter::execute<operators::filter_algorithm_t::bypass>(
+        G, E, remove_completed_paths, context);
+
+    /// @brief Execute uniquify operator to deduplicate the frontier
+    /// @note Not required.
+    // // bool best_effort_uniquification = true;
+    // // operators::uniquify::execute<operators::uniquify_algorithm_t::unique>(
+    // // E, context, best_effort_uniquification);
   }
 
 };  // struct enactor_t
@@ -142,17 +155,22 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 template <typename graph_t>
 float run(graph_t& G,
           typename graph_t::vertex_type& single_source,  // Parameter
-          points_t* points,
+          typename graph_t::weight_type* distances,      // Output
+          typename graph_t::vertex_type* predecessors,   // Output
           std::shared_ptr<gcuda::multi_context_t> context =
               std::shared_ptr<gcuda::multi_context_t>(
                   new gcuda::multi_context_t(0))  // Context
 ) {
+  // <user-defined>
   using vertex_t = typename graph_t::vertex_type;
+  using weight_t = typename graph_t::weight_type;
+
   using param_type = param_t<vertex_t>;
-  using result_type = result_t;
+  using result_type = result_t<vertex_t, weight_t>;
 
   param_type param(single_source);
-  result_type result(points);
+  result_type result(distances, predecessors, G.get_number_of_vertices());
+  // </user-defined>
 
   using problem_type = problem_t<graph_t, param_type, result_type>;
   using enactor_type = enactor_t<problem_type>;
@@ -161,13 +179,10 @@ float run(graph_t& G,
   problem.init();
   problem.reset();
 
-  // Disable internal-frontiers:
-  enactor_properties_t props;
-  props.self_manage_frontiers = true;
-
   enactor_type enactor(&problem, context);
   return enactor.enact();
+  // </boiler-plate>
 }
 
-}  // namespace greedy_search
+}  // namespace sssp
 }  // namespace gunrock
