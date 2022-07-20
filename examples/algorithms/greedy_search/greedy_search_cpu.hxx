@@ -20,9 +20,10 @@ class prioritize {
 };
 
 template <typename csr_t, typename vertex_t, typename edge_t, typename weight_t>
+
 float run(csr_t& csr,
           vertex_t& single_source,
-          vector<double> euclidean_distances,
+          std::vector<double> euclidean_distances,
           weight_t* distances,
           vertex_t* predecessors) {
   thrust::host_vector<edge_t> _row_offsets(
