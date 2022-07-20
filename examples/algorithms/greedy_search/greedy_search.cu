@@ -87,7 +87,7 @@ void test_greedy_search(int num_arguments, char** argument_array) {
   thrust::host_vector<weight_t> h_distances(n_vertices);
   thrust::host_vector<vertex_t> h_predecessors(n_vertices);
 
-  float cpu_elapsed = greedy_search::run<csr_t, vertex_t, edge_t, weight_t>(
+  float cpu_elapsed = greedy_search_cpu::run<csr_t, vertex_t, edge_t, weight_t>(
       csr, single_source, h_distances.data(), h_predecessors.data());
 
   int n_errors =
