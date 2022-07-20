@@ -1,13 +1,3 @@
-/**
- * @file sssp.hxx
- * @author Muhammad Osama (mosama@ucdavis.edu)
- * @brief Single-Source Shortest Path algorithm.
- * @version 0.1
- * @date 2020-10-05
- *
- * @copyright Copyright (c) 2020
- *
- */
 #pragma once
 
 #include <gunrock/algorithms/algorithms.hxx>
@@ -184,5 +174,5 @@ float run(graph_t& G,
   // </boiler-plate>
 }
 
-}  // namespace sssp
+}  // namespace greedy_search
 }  // namespace gunrock

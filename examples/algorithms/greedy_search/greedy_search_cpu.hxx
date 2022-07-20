@@ -71,4 +71,4 @@ float run(csr_t& csr,
   return (float)elapsed / 1000;
 }
 
-}  // namespace sssp_cpu
+}  // namespace greedy_search_cpu

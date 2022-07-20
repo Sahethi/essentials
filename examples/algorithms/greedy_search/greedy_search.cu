@@ -1,10 +1,10 @@
-#include <gunrock/algorithms/sssp.hxx>
+#include <gunrock/algorithms/greedy_search.hxx>
 #include "greedy_search_cpu.hxx"  // Reference implementation
 
 using namespace gunrock;
 using namespace memory;
 
-void test_sssp(int num_arguments, char** argument_array) {
+void test_greedy_search(int num_arguments, char** argument_array) {
   if (num_arguments != 2) {
     std::cerr << "usage: ./bin/<program-name> filename.mtx" << std::endl;
     exit(1);
@@ -87,7 +87,7 @@ void test_sssp(int num_arguments, char** argument_array) {
   thrust::host_vector<weight_t> h_distances(n_vertices);
   thrust::host_vector<vertex_t> h_predecessors(n_vertices);
 
-  float cpu_elapsed = greedy_search_cpu::run<csr_t, vertex_t, edge_t, weight_t>(
+  float cpu_elapsed = greedy_search::run<csr_t, vertex_t, edge_t, weight_t>(
       csr, single_source, h_distances.data(), h_predecessors.data());
 
   int n_errors =
@@ -105,5 +105,5 @@ void test_sssp(int num_arguments, char** argument_array) {
 }
 
 int main(int argc, char** argv) {
-  test_sssp(argc, argv);
+  test_greedy_search(argc, argv);
 }
