@@ -25,7 +25,11 @@ float run(csr_t& csr,
           vertex_t& single_source,
           std::vector<double> euclidean_distances,
           weight_t* distances,
-          vertex_t* predecessors) {
+          vertex_t* predecessors, vertex_t* nodes) {
+  
+  for (int j = 0; j < csr.number_of_rows; j++) {
+    std::cout<<nodes[j];
+  }
   thrust::host_vector<edge_t> _row_offsets(
       csr.row_offsets);  // Copy data to CPU
   thrust::host_vector<vertex_t> _column_indices(csr.column_indices);

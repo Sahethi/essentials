@@ -8,7 +8,8 @@ namespace greedy_search {
 template <typename vertex_t>
 struct param_t {
   vertex_t single_source;
-  param_t(vertex_t _single_source) : single_source(_single_source) {}
+   vertex_t* nodes;
+  param_t(vertex_t _single_source, vertex_t* _nodes) : single_source(_single_source), nodes(_nodes) {}
 };
 
 template <typename vertex_t, typename weight_t>
@@ -148,6 +149,7 @@ float run(graph_t& G,
           std::vector<double> euclidean_distances,
           typename graph_t::weight_type* distances,      // Output
           typename graph_t::vertex_type* predecessors,   // Output
+           typename graph_t::vertex_type* nodes,
           std::shared_ptr<gcuda::multi_context_t> context =
               std::shared_ptr<gcuda::multi_context_t>(
                   new gcuda::multi_context_t(0))  // Context
@@ -159,7 +161,7 @@ float run(graph_t& G,
   using param_type = param_t<vertex_t>;
   using result_type = result_t<vertex_t, weight_t>;
 
-  param_type param(single_source);
+  param_type param(single_source, nodes);
   result_type result(distances, predecessors, G.get_number_of_vertices());
   // </user-defined>
 
