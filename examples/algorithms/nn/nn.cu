@@ -1,7 +1,6 @@
 #include <gunrock/algorithms/algorithms.hxx>
-
+#include <gunrock/algorithms/nn.hxx>
 // Include the application code -- we'll comment this out now so we can compile a test quickly.
-#include "sssp_cpu.hxx" 
 
 using namespace gunrock;
 using namespace memory;
