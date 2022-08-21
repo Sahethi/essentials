@@ -3,7 +3,7 @@
 
 using namespace gunrock;
 using namespace memory;
-
+using namespace std;
 void test_sssp(int num_arguments, char** argument_array) {
   if (num_arguments != 2) {
     std::cerr << "usage: ./bin/<program-name> filename.mtx" << std::endl;
@@ -13,7 +13,7 @@ void test_sssp(int num_arguments, char** argument_array) {
   // --
   // Define types
 
-  using graph_t = struct node {
+  using my_graph_t = struct node {
     int node_id;
     int points[2];
   };
@@ -62,9 +62,10 @@ void test_sssp(int num_arguments, char** argument_array) {
   std::cout << "Single Source = " << single_source << std::endl;
 
 
+  //storing graph in a custom template type
   ifstream infile("/content/essentials/examples/algorithms/nn/points.txt");
   string line;
-  graph_t g[n_vertices];
+  my_graph_t g[n_vertices];
   int i = 0;
   while (getline(infile, line)) {
       g[i].node_id = i;
@@ -76,11 +77,12 @@ void test_sssp(int num_arguments, char** argument_array) {
       i++;
   }
 
-  for(i=0;i<n_vertices;i++){    
-    cout<<g[i].node_id<<endl;
-    cout<<g[i].points[0]<<endl;
-    cout<<g[i].points[1]<<endl;
-  }    
+  // Checking if it works
+  // for(i=0;i<n_vertices;i++){    
+  //   cout<<g[i].node_id<<endl;
+  //   cout<<g[i].points[0]<<endl;
+  //   cout<<g[i].points[1]<<endl;
+  // }    
 
   // --
   // GPU Run
@@ -101,7 +103,7 @@ void test_sssp(int num_arguments, char** argument_array) {
   int num_runs = 5;
 
   for (auto i = 0; i < num_runs; i++)
-    gpu_elapsed += gunrock::nn::run(G, single_source, distances.data().get(), );
+    gpu_elapsed += gunrock::nn::run(G, single_source, distances.data().get(), g);
 
   gpu_elapsed /= num_runs;
 
