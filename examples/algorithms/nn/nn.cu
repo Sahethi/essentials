@@ -1,4 +1,5 @@
 #include <gunrock/algorithms/nn.hxx>
+#include <fstream>
 
 using namespace gunrock;
 using namespace memory;
@@ -11,6 +12,11 @@ void test_sssp(int num_arguments, char** argument_array) {
 
   // --
   // Define types
+
+  using graph_t = struct node {
+    int node_id;
+    int points[2];
+  };
 
   using vertex_t = int;
   using edge_t = int;
@@ -55,6 +61,27 @@ void test_sssp(int num_arguments, char** argument_array) {
   vertex_t single_source = 0;  // rand() % n_vertices;
   std::cout << "Single Source = " << single_source << std::endl;
 
+
+  ifstream infile("/content/essentials/examples/algorithms/nn/points.txt");
+  string line;
+  graph_t g[n_vertices];
+  int i = 0;
+  while (getline(infile, line)) {
+      g[i].node_id = i;
+      istringstream iss(line);
+      int a, b;
+      if (!(iss >> a >> b)) { break; } // error
+      g[i].points[0] = a;
+      g[i].points[1] = b;
+      i++;
+  }
+
+  for(i=0;i<n_vertices;i++){    
+    cout<<g[i].node_id<<endl;
+    cout<<g[i].points[0]<<endl;
+    cout<<g[i].points[1]<<endl;
+  }    
+
   // --
   // GPU Run
 
@@ -74,7 +101,7 @@ void test_sssp(int num_arguments, char** argument_array) {
   int num_runs = 5;
 
   for (auto i = 0; i < num_runs; i++)
-    gpu_elapsed += gunrock::nn::run(G, single_source, distances.data().get());
+    gpu_elapsed += gunrock::nn::run(G, single_source, distances.data().get(), );
 
   gpu_elapsed /= num_runs;
 

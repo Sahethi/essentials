@@ -24,9 +24,6 @@ struct param_t {
 template <typename vertex_t, typename weight_t>
 struct result_t {
   weight_t* distances;
-  // vertex_t* predecessors;
-  // result_t(weight_t* _distances, vertex_t* _predecessors, vertex_t n_vertices)
-  //     : distances(_distances), predecessors(_predecessors) {}
   result_t(weight_t* _distances, vertex_t n_vertices)
       : distances(_distances){}
 };
