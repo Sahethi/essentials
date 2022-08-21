@@ -1,5 +1,5 @@
 /**
- * @file sssp.hxx
+ * @file nn.hxx
  * @author Muhammad Osama (mosama@ucdavis.edu)
  * @brief Single-Source Shortest Path algorithm.
  * @version 0.1
@@ -24,9 +24,11 @@ struct param_t {
 template <typename vertex_t, typename weight_t>
 struct result_t {
   weight_t* distances;
-  vertex_t* predecessors;
-  result_t(weight_t* _distances, vertex_t* _predecessors, vertex_t n_vertices)
-      : distances(_distances), predecessors(_predecessors) {}
+  // vertex_t* predecessors;
+  // result_t(weight_t* _distances, vertex_t* _predecessors, vertex_t n_vertices)
+  //     : distances(_distances), predecessors(_predecessors) {}
+  result_t(weight_t* _distances, vertex_t n_vertices)
+      : distances(_distances){}
 };
 
 template <typename graph_t, typename param_type, typename result_type>
@@ -156,7 +158,6 @@ template <typename graph_t>
 float run(graph_t& G,
           typename graph_t::vertex_type& single_source,  // Parameter
           typename graph_t::weight_type* distances,      // Output
-          typename graph_t::vertex_type* predecessors,   // Output
           std::shared_ptr<gcuda::multi_context_t> context =
               std::shared_ptr<gcuda::multi_context_t>(
                   new gcuda::multi_context_t(0))  // Context
@@ -169,7 +170,7 @@ float run(graph_t& G,
   using result_type = result_t<vertex_t, weight_t>;
 
   param_type param(single_source);
-  result_type result(distances, predecessors, G.get_number_of_vertices());
+  result_type result(distances, G.get_number_of_vertices());
   // </user-defined>
 
   using problem_type = problem_t<graph_t, param_type, result_type>;

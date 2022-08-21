@@ -69,14 +69,12 @@ void test_sssp(int num_arguments, char** argument_array) {
   //     deleter_t<vertex_t>());
 
   thrust::device_vector<weight_t> distances(n_vertices);
-  thrust::device_vector<vertex_t> predecessors(n_vertices);
 
   float gpu_elapsed = 0.0f;
   int num_runs = 5;
 
   for (auto i = 0; i < num_runs; i++)
-    gpu_elapsed += gunrock::nn::run(G, single_source, distances.data().get(),
-                                      predecessors.data().get());
+    gpu_elapsed += gunrock::nn::run(G, single_source, distances.data().get());
 
   gpu_elapsed /= num_runs;
 
