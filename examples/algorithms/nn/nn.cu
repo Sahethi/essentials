@@ -1,7 +1,7 @@
 #include <gunrock/algorithms/algorithms.hxx>
 
 // Include the application code -- we'll comment this out now so we can compile a test quickly.
-// #include <gunrock/algorithms/my_sssp.hxx>
+#include "sssp_cpu.hxx" 
 
 using namespace gunrock;
 using namespace memory;
@@ -75,7 +75,7 @@ void test_my_sssp(int num_arguments, char** argument_array) {
   // Call the gunrock function to run `my_sssp`
   // Note that this code doesn't exist yet, so this will break the compiler, 
   // but we'll be creating it in the next step
-  float gpu_elapsed = gunrock::my_sssp::run(G, single_source, distances.data().get());
+  float gpu_elapsed = gunrock::nn::run(G, single_source, distances.data().get());
 
   // --
   // Log + Validate
