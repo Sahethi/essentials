@@ -1,14 +1,24 @@
+/**
+ * @file nn.hxx
+ * @author Muhammad Osama (mosama@ucdavis.edu)
+ * @brief Single-Source Shortest Path algorithm.
+ * @version 0.1
+ * @date 2020-10-05
+ *
+ * @copyright Copyright (c) 2020
+ *
+ */
 #pragma once
 
 #include <gunrock/algorithms/algorithms.hxx>
+
 namespace gunrock {
-namespace greedy_search {
+namespace nn {
 
 template <typename vertex_t>
 struct param_t {
   vertex_t single_source;
-  vertex_t* nodes;
-  param_t(vertex_t _single_source, vertex_t* _nodes) : single_source(_single_source), nodes(_nodes) {}
+  param_t(vertex_t _single_source) : single_source(_single_source) {}
 };
 
 template <typename vertex_t, typename weight_t>
@@ -44,7 +54,6 @@ struct problem_t : gunrock::problem_t<graph_t> {
     visited.resize(n_vertices);
 
     // Execution policy for a given context (using single-gpu).
-    //Context Definition FInd
     auto policy = this->context->get_context(0)->execution_policy();
     thrust::fill(policy, visited.begin(), visited.end(), -1);
   }
@@ -93,13 +102,12 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     auto G = P->get_graph();
 
     auto single_source = P->param.single_source;
-    auto nodes = P->param.nodes;
     auto distances = P->result.distances;
     auto visited = P->visited.data().get();
 
     auto iteration = this->iteration;
 
-    auto find_neighbor = [distances, single_source] __host__ __device__(
+    auto shortest_path = [distances, single_source] __host__ __device__(
                              vertex_t const& source,    // ... source
                              vertex_t const& neighbor,  // neighbor
                              edge_t const& edge,        // edge
@@ -121,13 +129,15 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
         return false;
 
       visited[vertex] = iteration;
-
+      /// @todo Confirm we do not need the following for bug
+      /// https://github.com/gunrock/essentials/issues/9 anymore.
+      // return G.get_number_of_neighbors(vertex) > 0;
       return true;
     };
 
     // Execute advance operator on the provided lambda
     operators::advance::execute<operators::load_balance_t::block_mapped>(
-        G, E, find_neighbor, context);
+        G, E, shortest_path, context);
 
     // Execute filter operator on the provided lambda
     operators::filter::execute<operators::filter_algorithm_t::bypass>(
@@ -145,10 +155,8 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 template <typename graph_t>
 float run(graph_t& G,
           typename graph_t::vertex_type& single_source,  // Parameter
-          std::vector<double> euclidean_distances,
           typename graph_t::weight_type* distances,      // Output
           typename graph_t::vertex_type* predecessors,   // Output
-           typename graph_t::vertex_type* nodes,
           std::shared_ptr<gcuda::multi_context_t> context =
               std::shared_ptr<gcuda::multi_context_t>(
                   new gcuda::multi_context_t(0))  // Context
@@ -160,7 +168,7 @@ float run(graph_t& G,
   using param_type = param_t<vertex_t>;
   using result_type = result_t<vertex_t, weight_t>;
 
-  param_type param(single_source, nodes);
+  param_type param(single_source);
   result_type result(distances, predecessors, G.get_number_of_vertices());
   // </user-defined>
 
@@ -176,5 +184,5 @@ float run(graph_t& G,
   // </boiler-plate>
 }
 
-}  // namespace greedy_search
+}  // namespace nn
 }  // namespace gunrock

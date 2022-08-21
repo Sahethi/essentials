@@ -117,10 +117,8 @@ void test_greedy_search(int num_arguments, char** argument_array, vector<double>
     // --
     // Log + Validate
 
-    print::head(distances, 40, "GPU distances");
-    print::head(h_distances, 40, "CPU Distances");
 
-    cout << "GPU Elapsed Time : " << gpu_elapsed << " (ms)" <<  endl;
+    cout << "\nGPU Elapsed Time : " << gpu_elapsed << " (ms)" <<  endl;
     cout << "CPU Elapsed Time : " << cpu_elapsed << " (ms)" <<  endl;
     cout << "Number of errors : " << n_errors <<  endl;
   
@@ -132,6 +130,8 @@ int main(int argc, char** argv) {
   int x = atoi(argv[2]);
   int y = atoi(argv[3]);
   euclidean = calculate_distances(10, 4);
-
+  for (auto i = euclidean.begin(); i != euclidean.end(); ++i)
+    cout << *i << " ";
+  cout<<"\n";
   test_greedy_search(argc, argv, euclidean);
 }
