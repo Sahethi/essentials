@@ -12,11 +12,7 @@ void test_sssp(int num_arguments, char** argument_array) {
 
   // --
   // Define types
-
-  using my_graph_t = struct node {
-    int node_id;
-    int points[2];
-  };
+  int k = 3; 
 
   using vertex_t = int;
   using edge_t = int;
@@ -59,21 +55,21 @@ void test_sssp(int num_arguments, char** argument_array) {
 
   vertex_t n_vertices = G.get_number_of_vertices();
   vertex_t single_source = 0;  // rand() % n_vertices;
+  vertex_t query_point[2] = {10, 4};
   std::cout << "Single Source = " << single_source << std::endl;
 
+   int full_vectors[n_vertices][2];
 
   //storing graph in a custom template type
   ifstream infile("/content/essentials/examples/algorithms/nn/points.txt");
   string line;
-  my_graph_t g[n_vertices];
   int i = 0;
   while (getline(infile, line)) {
-      g[i].node_id = i;
       istringstream iss(line);
       int a, b;
       if (!(iss >> a >> b)) { break; } // error
-      g[i].points[0] = a;
-      g[i].points[1] = b;
+      full_vectors[i][0] = a; 
+      full_vectors[i][1] = b;
       i++;
   }
 
@@ -98,18 +94,13 @@ void test_sssp(int num_arguments, char** argument_array) {
   //     deleter_t<vertex_t>());
 
   thrust::device_vector<weight_t> distances(n_vertices);
+  thrust::device_vector<vertex_t> top_k(n_vertices);
 
-  float gpu_elapsed = 0.0f;
-  int num_runs = 5;
-
-  for (auto i = 0; i < num_runs; i++)
-    gpu_elapsed += gunrock::nn::run(G, single_source, distances.data().get(), g);
-
-  gpu_elapsed /= num_runs;
+  gunrock::nn::run(G, single_source, distances.data().get(), full_vectors, query_point, k, top_k.data().get());
 
   print::head(distances, 40, "GPU distances");
 
-  std::cout << "GPU Elapsed Time : " << gpu_elapsed << " (ms)" << std::endl;
+  //std::cout << "GPU Elapsed Time : " << gpu_elapsed << " (ms)" << std::endl;
 }
 
 int main(int argc, char** argv) {

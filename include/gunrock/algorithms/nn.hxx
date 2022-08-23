@@ -11,21 +11,26 @@
 #pragma once
 
 #include <gunrock/algorithms/algorithms.hxx>
+#include <bits/stdc++.h>
 
+using namespace std; 
 namespace gunrock {
 namespace nn {
 
 template <typename vertex_t>
 struct param_t {
   vertex_t single_source;
-  param_t(vertex_t _single_source) : single_source(_single_source) {}
+  int k;
+  vertex_t* query_point;
+  param_t(vertex_t _single_source, vertex_t* _query_point, int _k) : single_source(_single_source), query_point(_query_point), k(_k) {}
 };
 
 template <typename vertex_t, typename weight_t>
 struct result_t {
   weight_t* distances;
-  result_t(weight_t* _distances, vertex_t n_vertices)
-      : distances(_distances){}
+  vertex_t* top_k;
+  result_t(weight_t* _distances, vertex_t* _top_k, vertex_t n_vertices)
+      : distances(_distances), top_k(_top_k){}
 };
 
 template <typename graph_t, typename param_type, typename result_type>
@@ -46,10 +51,14 @@ struct problem_t : gunrock::problem_t<graph_t> {
   using weight_t = typename graph_t::weight_type;
 
   thrust::device_vector<vertex_t> visited;
+  priority_queue <int> top_k_queue;
+  priority_queue <int, vector<int>, greater<int> > q;
+
 
   void init() override {
     auto g = this->get_graph();
     auto n_vertices = g.get_number_of_vertices();
+    //Setting the size of visited ('thrust' function)
     visited.resize(n_vertices);
 
     // Execution policy for a given context (using single-gpu).
@@ -57,6 +66,7 @@ struct problem_t : gunrock::problem_t<graph_t> {
     thrust::fill(policy, visited.begin(), visited.end(), -1);
   }
 
+  // The reset method should be called if you want to run the same application multiple times on the same dataset (eg, with different parameters).
   void reset() override {
     auto g = this->get_graph();
     auto n_vertices = g.get_number_of_vertices();
@@ -66,14 +76,26 @@ struct problem_t : gunrock::problem_t<graph_t> {
 
     auto single_source = this->param.single_source;
     auto d_distances = thrust::device_pointer_cast(this->result.distances);
+    
+    //distances should be infinite for non source nodes
     thrust::fill(policy, d_distances + 0, d_distances + n_vertices,
                  std::numeric_limits<weight_t>::max());
 
+    //distance of source node is o
     thrust::fill(policy, d_distances + single_source,
                  d_distances + single_source + 1, 0);
 
     thrust::fill(policy, visited.begin(), visited.end(),
                  -1);  // This does need to be reset in between runs though
+
+    // while (!q.empty()){
+    //     q.pop();
+    // }
+
+    // while(!top_k_queue.empty()){
+    //   top_k_queue.pop();
+    // }
+
   }
 };
 
@@ -94,6 +116,7 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     f->push_back(P->param.single_source);
   }
 
+  //this method contains the core computational logic for your application
   void loop(gcuda::multi_context_t& context) override {
     // Data slice
     auto E = this->get_enactor();
@@ -101,11 +124,16 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     auto G = P->get_graph();
 
     auto single_source = P->param.single_source;
+    auto query_point = P->param.query_point;
+    auto k = P->param.k;
     auto distances = P->result.distances;
+    auto top_k = P->result.top_k;
     auto visited = P->visited.data().get();
 
     auto iteration = this->iteration;
 
+
+    // auto find_top_k = [top_k, single_source, k, query_point]
     auto shortest_path = [distances, single_source] __host__ __device__(
                              vertex_t const& source,    // ... source
                              vertex_t const& neighbor,  // neighbor
@@ -154,13 +182,16 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 using my_graph_t = struct node {
     int node_id;
     int points[2];
-  };
-  
-template <typename graph_t>
+};
+
+template <typename graph_t, typename my_graph_t>
 float run(graph_t& G,
           typename graph_t::vertex_type& single_source,  // Parameter
           typename graph_t::weight_type* distances,      // Output
-          my_graph_t g,
+          int full_vectors[][],
+          typename graph_t::vertex_type query_point[],
+          int k,
+          typename graph_t::vertex_type* top_k,
           std::shared_ptr<gcuda::multi_context_t> context =
               std::shared_ptr<gcuda::multi_context_t>(
                   new gcuda::multi_context_t(0))  // Context
@@ -169,11 +200,19 @@ float run(graph_t& G,
   using vertex_t = typename graph_t::vertex_type;
   using weight_t = typename graph_t::weight_type;
 
+  // Checking if it works
+  // for(int i=0;i<14;i++){    
+  //   cout<<g[i].node_id<<endl;
+  //   cout<<g[i].points[0]<<" "<<g[i].points[1]<<endl;
+  // } 
+  //cout<<k<<endl;
+  //cout<<query_point[0]<<query_point[1]<<endl;
+
   using param_type = param_t<vertex_t>;
   using result_type = result_t<vertex_t, weight_t>;
 
-  param_type param(single_source);
-  result_type result(distances, G.get_number_of_vertices());
+  param_type param(single_source, query_point, k);
+  result_type result(distances, top_k, G.get_number_of_vertices());
   // </user-defined>
 
   using problem_type = problem_t<graph_t, param_type, result_type>;
