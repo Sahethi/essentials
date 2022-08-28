@@ -184,11 +184,11 @@ using my_graph_t = struct node {
     int points[2];
 };
 
-template <typename graph_t, typename my_graph_t>
+template <typename graph_t>
 float run(graph_t& G,
           typename graph_t::vertex_type& single_source,  // Parameter
           typename graph_t::weight_type* distances,      // Output
-          int full_vectors[][],
+          int full_vectors[][2],
           typename graph_t::vertex_type query_point[],
           int k,
           typename graph_t::vertex_type* top_k,

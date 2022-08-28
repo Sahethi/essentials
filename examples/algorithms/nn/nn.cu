@@ -58,7 +58,7 @@ void test_sssp(int num_arguments, char** argument_array) {
   vertex_t query_point[2] = {10, 4};
   std::cout << "Single Source = " << single_source << std::endl;
 
-   int full_vectors[n_vertices][2];
+  int full_vectors[n_vertices][2];
 
   //storing graph in a custom template type
   ifstream infile("/content/essentials/examples/algorithms/nn/points.txt");
@@ -73,34 +73,12 @@ void test_sssp(int num_arguments, char** argument_array) {
       i++;
   }
 
-  // Checking if it works
-  // for(i=0;i<n_vertices;i++){    
-  //   cout<<g[i].node_id<<endl;
-  //   cout<<g[i].points[0]<<endl;
-  //   cout<<g[i].points[1]<<endl;
-  // }    
-
-  // --
-  // GPU Run
-
-  /// An example of how one can use std::shared_ptr to allocate memory on the
-  /// GPU, using a custom deleter that automatically handles deletion of the
-  /// memory.
-  // std::shared_ptr<weight_t> distances(
-  //     allocate<weight_t>(n_vertices * sizeof(weight_t)),
-  //     deleter_t<weight_t>());
-  // std::shared_ptr<vertex_t> predecessors(
-  //     allocate<vertex_t>(n_vertices * sizeof(vertex_t)),
-  //     deleter_t<vertex_t>());
-
   thrust::device_vector<weight_t> distances(n_vertices);
   thrust::device_vector<vertex_t> top_k(n_vertices);
 
   gunrock::nn::run(G, single_source, distances.data().get(), full_vectors, query_point, k, top_k.data().get());
 
   print::head(distances, 40, "GPU distances");
-
-  //std::cout << "GPU Elapsed Time : " << gpu_elapsed << " (ms)" << std::endl;
 }
 
 int main(int argc, char** argv) {
