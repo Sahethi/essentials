@@ -22,7 +22,8 @@ struct param_t {
   vertex_t single_source;
   int k;
   vertex_t* query_point;
-  param_t(vertex_t _single_source, vertex_t* _query_point, int _k) : single_source(_single_source), query_point(_query_point), k(_k) {}
+  int* full_vectors;
+  param_t(vertex_t _single_source, vertex_t* _query_point, int _k, int* _full_vectors) : single_source(_single_source), query_point(_query_point), k(_k) , full_vectors(_full_vectors){}
 };
 
 template <typename vertex_t, typename weight_t>
@@ -118,6 +119,7 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 
   //this method contains the core computational logic for your application
   void loop(gcuda::multi_context_t& context) override {
+    
     // Data slice
     auto E = this->get_enactor();
     auto P = this->get_problem();
@@ -126,15 +128,17 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     auto single_source = P->param.single_source;
     auto query_point = P->param.query_point;
     auto k = P->param.k;
+    auto full_vectors = P->param.full_vectors;
     auto distances = P->result.distances;
     auto top_k = P->result.top_k;
     auto visited = P->visited.data().get();
-
     auto iteration = this->iteration;
 
-
+    cout<<iteration<<endl;
+    this->active_frontier->print();
+    
     // auto find_top_k = [top_k, single_source, k, query_point]
-    auto shortest_path = [distances, single_source] __host__ __device__(
+    auto shortest_path = [this, iteration, full_vectors, top_k, query_point, distances, single_source] __host__ __device__(
                              vertex_t const& source,    // ... source
                              vertex_t const& neighbor,  // neighbor
                              edge_t const& edge,        // edge
@@ -142,10 +146,17 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
                              ) -> bool {
       weight_t source_distance = thread::load(&distances[source]);
       weight_t distance_to_neighbor = source_distance + weight;
-
+      
+      // Store min(distances[neighbor], new_dist) in distances[neighbor]
       // Check if the destination node has been claimed as someone's child
       weight_t recover_distance =
           math::atomic::min(&(distances[neighbor]), distance_to_neighbor);
+      
+      if(iteration == 1){
+        for(int j=0; j<8; j++){
+          top_k[0] +=1;
+        }
+      }
 
       return (distance_to_neighbor < recover_distance);
     };
@@ -175,14 +186,19 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     // // bool best_effort_uniquification = true;
     // // operators::uniquify::execute<operators::uniquify_algorithm_t::unique>(
     // // E, context, best_effort_uniquification);
+  
+    auto in_frontier = &(this->frontiers[0]);
+    auto out_frontier = &(this->frontiers[1]);
+    //out_frontier->print();
+  }
+  
+  //convergence condition
+  bool is_converged(gcuda::multi_context_t& context) {
+    return this->active_frontier->is_empty();
   }
 
 };  // struct enactor_t
 
-using my_graph_t = struct node {
-    int node_id;
-    int points[2];
-};
 
 template <typename graph_t>
 float run(graph_t& G,
@@ -196,6 +212,7 @@ float run(graph_t& G,
               std::shared_ptr<gcuda::multi_context_t>(
                   new gcuda::multi_context_t(0))  // Context
 ) {
+
   // <user-defined>
   using vertex_t = typename graph_t::vertex_type;
   using weight_t = typename graph_t::weight_type;
@@ -217,7 +234,7 @@ float run(graph_t& G,
   using param_type = param_t<vertex_t>;
   using result_type = result_t<vertex_t, weight_t>;
 
-  param_type param(single_source, query_point, k);
+  param_type param(single_source, query_point, k, full_vectors);
   result_type result(distances, top_k, G.get_number_of_vertices());
   // </user-defined>
 

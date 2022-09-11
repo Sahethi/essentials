@@ -79,6 +79,7 @@ void test_sssp(int num_arguments, char** argument_array) {
 
   gunrock::nn::run(G, single_source, distances.data().get(), full_vectors, query_point, k, top_k.data().get());
 
+  //Print the first k elements of a vector. Here it is distance.
   print::head(distances, 40, "GPU distances");
 }
 
