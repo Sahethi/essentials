@@ -188,7 +188,7 @@ template <typename graph_t>
 float run(graph_t& G,
           typename graph_t::vertex_type& single_source,  // Parameter
           typename graph_t::weight_type* distances,      // Output
-          int full_vectors[][2],
+          int *full_vectors,
           typename graph_t::vertex_type query_point[],
           int k,
           typename graph_t::vertex_type* top_k,
@@ -199,6 +199,12 @@ float run(graph_t& G,
   // <user-defined>
   using vertex_t = typename graph_t::vertex_type;
   using weight_t = typename graph_t::weight_type;
+
+  //testing
+  // for(int j=0; j<G.get_number_of_vertices()*2; j+=2){
+  //   cout<<full_vectors[j]<<" ";
+  //   cout<<full_vectors[j+1]<<" ";
+  // }
 
   // Checking if it works
   // for(int i=0;i<14;i++){    

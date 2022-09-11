@@ -58,19 +58,20 @@ void test_sssp(int num_arguments, char** argument_array) {
   vertex_t query_point[2] = {10, 4};
   std::cout << "Single Source = " << single_source << std::endl;
 
-  int full_vectors[n_vertices][2];
+  int *full_vectors = (int*)malloc(n_vertices * 2 * sizeof(int));
 
   //storing graph in a custom template type
   ifstream infile("/content/essentials/examples/algorithms/nn/points.txt");
   string line;
-  int i = 0;
+  int i = 0, j = 0;
   while (getline(infile, line)) {
       istringstream iss(line);
       int a, b;
       if (!(iss >> a >> b)) { break; } // error
-      full_vectors[i][0] = a; 
-      full_vectors[i][1] = b;
+      full_vectors[j] = a; 
+      full_vectors[j+1] = b;
       i++;
+      j+=2;
   }
 
   thrust::device_vector<weight_t> distances(n_vertices);
