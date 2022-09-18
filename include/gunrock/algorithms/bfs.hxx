@@ -89,6 +89,9 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 
     auto iteration = this->iteration;
 
+    cout<<iteration<<endl;
+    this->active_frontier->print();
+
     auto search = [distances, single_source, iteration] __host__ __device__(
                       vertex_t const& source,    // ... source
                       vertex_t const& neighbor,  // neighbor

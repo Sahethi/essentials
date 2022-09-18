@@ -152,11 +152,11 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
       weight_t recover_distance =
           math::atomic::min(&(distances[neighbor]), distance_to_neighbor);
       
-      if(iteration == 1){
-        for(int j=0; j<8; j++){
-          top_k[0] +=1;
-        }
-      }
+      // if(iteration == 1){
+      //   for(int j=0; j<8; j++){
+      //     top_k[0] +=1;
+      //   }
+      // }
 
       return (distance_to_neighbor < recover_distance);
     };
