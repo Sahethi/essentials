@@ -144,52 +144,41 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
                              edge_t const& edge,        // edge
                              weight_t const& weight     // weight (tuple).
                              ) -> bool {
-      weight_t source_distance = thread::load(&distances[source]);
-      weight_t distance_to_neighbor = source_distance + weight;
-      
-      // Store min(distances[neighbor], new_dist) in distances[neighbor]
-      // Check if the destination node has been claimed as someone's child
-      weight_t recover_distance =
-          math::atomic::min(&(distances[neighbor]), distance_to_neighbor);
-      
-      // if(iteration == 1){
-      //   for(int j=0; j<8; j++){
-      //     top_k[0] +=1;
-      //   }
-      // }
+      // If the neighbor is not visited, update the distance. Returning false
+      // here means that the neighbor is not added to the output frontier, and
+      // instead an invalid vertex is added in its place. These invalides (-1 in
+      // most cases) can be removed using a filter operator or uniquify.
+      if (distances[neighbor] != std::numeric_limits<vertex_t>::max())
+        return false;
+      else
+        return (math::atomic::cas(
+                    &distances[neighbor],
+                    std::numeric_limits<vertex_t>::max(), iteration + 1) ==
+                    std::numeric_limits<vertex_t>::max());
 
-      return (distance_to_neighbor < recover_distance);
+      // Simpler logic for the above.
+      // auto old_distance =
+      //     math::atomic::min(&distances[neighbor], iteration + 1);
+      // return (iteration + 1 < old_distance);
     };
 
-    auto remove_completed_paths = [G, visited, iteration] __host__ __device__(
-                                      vertex_t const& vertex) -> bool {
-      if (visited[vertex] == iteration)
-        return false;
-
-      visited[vertex] = iteration;
-      /// @todo Confirm we do not need the following for bug
-      /// https://github.com/gunrock/essentials/issues/9 anymore.
-      // return G.get_number_of_neighbors(vertex) > 0;
+    auto remove_invalids =
+        [] __host__ __device__(vertex_t const& vertex) -> bool {
+      // Returning true here means that we keep all the valid vertices.
+      // Internally, filter will automatically remove invalids and will never
+      // pass them to this lambda function.
       return true;
     };
 
     // Execute advance operator on the provided lambda
     operators::advance::execute<operators::load_balance_t::block_mapped>(
-        G, E, shortest_path, context);
+        G, E, search, context);
 
-    // Execute filter operator on the provided lambda
-    operators::filter::execute<operators::filter_algorithm_t::bypass>(
-        G, E, remove_completed_paths, context);
+    // Execute filter operator to remove the invalids.
+    // @todo: Add CLI option to enable or disable this.
+    operators::filter::execute<operators::filter_algorithm_t::compact>(
+    G, E, remove_invalids, context);
 
-    /// @brief Execute uniquify operator to deduplicate the frontier
-    /// @note Not required.
-    // // bool best_effort_uniquification = true;
-    // // operators::uniquify::execute<operators::uniquify_algorithm_t::unique>(
-    // // E, context, best_effort_uniquification);
-  
-    auto in_frontier = &(this->frontiers[0]);
-    auto out_frontier = &(this->frontiers[1]);
-    //out_frontier->print();
   }
   
   //convergence condition
