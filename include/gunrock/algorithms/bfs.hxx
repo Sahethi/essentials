@@ -11,7 +11,9 @@
 #pragma once
 
 #include <gunrock/algorithms/algorithms.hxx>
+#include <bits/stdc++.h>
 
+using namespace std; 
 namespace gunrock {
 namespace bfs {
 
@@ -102,18 +104,18 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
       // here means that the neighbor is not added to the output frontier, and
       // instead an invalid vertex is added in its place. These invalides (-1 in
       // most cases) can be removed using a filter operator or uniquify.
-      // if (distances[neighbor] != std::numeric_limits<vertex_t>::max())
-      //   return false;
-      // else
-      //   return (math::atomic::cas(
-      //               &distances[neighbor],
-      //               std::numeric_limits<vertex_t>::max(), iteration + 1) ==
-      //               std::numeric_limits<vertex_t>::max());
+      if (distances[neighbor] != std::numeric_limits<vertex_t>::max())
+        return false;
+      else
+        return (math::atomic::cas(
+                    &distances[neighbor],
+                    std::numeric_limits<vertex_t>::max(), iteration + 1) ==
+                    std::numeric_limits<vertex_t>::max());
 
       // Simpler logic for the above.
-      auto old_distance =
-          math::atomic::min(&distances[neighbor], iteration + 1);
-      return (iteration + 1 < old_distance);
+      // auto old_distance =
+      //     math::atomic::min(&distances[neighbor], iteration + 1);
+      // return (iteration + 1 < old_distance);
     };
 
     auto remove_invalids =
@@ -130,8 +132,8 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 
     // Execute filter operator to remove the invalids.
     // @todo: Add CLI option to enable or disable this.
-    // operators::filter::execute<operators::filter_algorithm_t::compact>(
-    // G, E, remove_invalids, context);
+    operators::filter::execute<operators::filter_algorithm_t::compact>(
+    G, E, remove_invalids, context);
   }
 
 };  // struct enactor_t
