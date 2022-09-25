@@ -95,10 +95,15 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
 
     auto iteration = this->iteration;
 
+    auto query_point = P->param.query_point;
+    auto k = P->param.k;
+    auto full_vectors = P->param.full_vectors;
+    auto top_k = P->result.top_k;
+
     cout<<iteration<<endl;
     this->active_frontier->print();
 
-    auto search = [distances, single_source, iteration] __host__ __device__(
+    auto search = [distances, single_source, iteration, full_vectors, top_k, query_point, k] __host__ __device__(
                       vertex_t const& source,    // ... source
                       vertex_t const& neighbor,  // neighbor
                       edge_t const& edge,        // edge
@@ -173,6 +178,15 @@ float run(graph_t& G,
   using vertex_t = typename graph_t::vertex_type;
   using param_type = param_t<vertex_t>;
   using result_type = result_t<vertex_t>;
+
+  //testing
+  for(int j=0; j<G.get_number_of_vertices()*2; j+=2){
+    cout<<full_vectors[j]<<" ";
+    cout<<full_vectors[j+1]<<" ";
+  }
+
+  cout<<endl<<k<<endl;
+  cout<<query_point[0]<<query_point[1]<<endl;
 
   param_type param(single_source, query_point, k, full_vectors);
   result_type result(distances, predecessors, top_k, G.get_number_of_vertices());
