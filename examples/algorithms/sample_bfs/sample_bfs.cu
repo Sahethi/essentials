@@ -1,4 +1,4 @@
-#include <gunrock/algorithms/sample_bfs.h>
+#include <gunrock/algorithms/sample_bfs.hxx>
 #include "sample_bfs_cpu.h"
  
 using namespace gunrock;
@@ -60,14 +60,14 @@ void test_bfs(int num_arguments, char** argument_array) {
  
 // run problem this is will total time elapsed for GPU
  
- float gpu_elapsed = gunrock::bfs::run(
+ float gpu_elapsed = gunrock::sample_bfs::run(
      G, single_source, distances.data().get(), predecessors.data().get());
  
  // run problem this is will total time elapsed for CPU
  thrust::host_vector<vertex_t> h_distances(n_vertices);
  thrust::host_vector<vertex_t> h_predecessors(n_vertices);
  
- float cpu_elapsed = bfs_cpu::run<csr_t, vertex_t, edge_t>(
+ float cpu_elapsed = sample_bfs_cpu::run<csr_t, vertex_t, edge_t>(
      csr, single_source, h_distances.data(), h_predecessors.data());
  
  int n_errors =

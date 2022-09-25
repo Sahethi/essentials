@@ -14,6 +14,7 @@ add_subdirectory(spgemm)
 add_subdirectory(mst)
 add_subdirectory(tc)
 add_subdirectory(nn)
+add_subdirectory(sample_bfs)
 # end /* Add algorithms' subdirectories */
 
 # begin /* Add experimental algorithms' subdirectories */
