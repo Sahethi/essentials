@@ -20,15 +20,19 @@ namespace sample_bfs {
 template <typename vertex_t>
 struct param_t {
   vertex_t single_source;
-  param_t(vertex_t _single_source) : single_source(_single_source) {}
+  int k;
+  vertex_t* query_point;
+  int* full_vectors;
+  param_t(vertex_t _single_source, vertex_t* _query_point, int _k, int* _full_vectors) : single_source(_single_source), query_point(_query_point), k(_k) , full_vectors(_full_vectors){}
 };
 
 template <typename vertex_t>
 struct result_t {
   vertex_t* distances;
   vertex_t* predecessors; /// @todo: implement this.
-  result_t(vertex_t* _distances, vertex_t* _predecessors)
-      : distances(_distances), predecessors(_predecessors) {}
+  vertex_t* top_k;
+  result_t(vertex_t* _distances, vertex_t* _predecessors, vertex_t* _top_k, vertex_t n_vertices)
+      : distances(_distances), predecessors(_predecessors), top_k(_top_k){}
 };
 
 template <typename graph_t, typename param_type, typename result_type>
@@ -158,6 +162,10 @@ float run(graph_t& G,
           typename graph_t::vertex_type& single_source,  // Parameter
           typename graph_t::vertex_type* distances,      // Output
           typename graph_t::vertex_type* predecessors,   // Output
+          int *full_vectors,
+          typename graph_t::vertex_type query_point[],
+          int k,
+          typename graph_t::vertex_type* top_k,
           std::shared_ptr<gcuda::multi_context_t> context =
               std::shared_ptr<gcuda::multi_context_t>(
                   new gcuda::multi_context_t(0))  // Context
@@ -166,8 +174,8 @@ float run(graph_t& G,
   using param_type = param_t<vertex_t>;
   using result_type = result_t<vertex_t>;
 
-  param_type param(single_source);
-  result_type result(distances, predecessors);
+  param_type param(single_source, query_point, k, full_vectors);
+  result_type result(distances, predecessors, top_k, G.get_number_of_vertices());
 
   using problem_type = problem_t<graph_t, param_type, result_type>;
   using enactor_type = enactor_t<problem_type>;

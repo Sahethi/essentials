@@ -1,8 +1,10 @@
 #include <gunrock/algorithms/sample_bfs.hxx>
-#include "sample_bfs_cpu.h"
+#include "sample_bfs_cpu.hxx"
+#include <fstream>
  
 using namespace gunrock;
 using namespace memory;
+using namespace std;
 //test_bfs has all our main functionality where we are creating out executable file in bin folder and getting the output and the statistics. 
 void test_bfs(int num_arguments, char** argument_array) {
  if (num_arguments != 2) {
@@ -11,6 +13,9 @@ void test_bfs(int num_arguments, char** argument_array) {
  }
  
  //defining types
+ int k = 3; 
+
+
  using vertex_t = int;
  using edge_t = int;
  using weight_t = float;
@@ -55,13 +60,34 @@ void test_bfs(int num_arguments, char** argument_array) {
  
  vertex_t single_source = 0;
  vertex_t n_vertices = G.get_number_of_vertices();
+ vertex_t query_point[2] = {10, 4};
+ cout << "Single Source = " << single_source << endl;
+
+ int *full_vectors = (int*)malloc(n_vertices * 2 * sizeof(int));
+
+  //storing graph in a custom template type
+  ifstream infile("/content/essentials/examples/algorithms/sample_bfs/points.txt");
+  string line;
+  int i = 0, j = 0;
+  while (getline(infile, line)) {
+      istringstream iss(line);
+      int a, b;
+      if (!(iss >> a >> b)) { break; } // error
+      full_vectors[j] = a; 
+      full_vectors[j+1] = b;
+      i++;
+      j+=2;
+  }
+
+
  thrust::device_vector<vertex_t> distances(n_vertices);
  thrust::device_vector<vertex_t> predecessors(n_vertices);
+ thrust::device_vector<vertex_t> top_k(n_vertices);
  
 // run problem this is will total time elapsed for GPU
  
  float gpu_elapsed = gunrock::sample_bfs::run(
-     G, single_source, distances.data().get(), predecessors.data().get());
+     G, single_source, distances.data().get(), predecessors.data().get(), full_vectors, query_point, k, top_k.data().get());
  
  // run problem this is will total time elapsed for CPU
  thrust::host_vector<vertex_t> h_distances(n_vertices);
