@@ -82,12 +82,13 @@ void test_bfs(int num_arguments, char** argument_array) {
 
  thrust::device_vector<vertex_t> distances(n_vertices);
  thrust::device_vector<vertex_t> predecessors(n_vertices);
- thrust::device_vector<vertex_t> top_k(n_vertices);
+ //thrust::device_vector<vertex_t> top_k(n_vertices);
+ int *top_k = (int*)malloc(n_vertices * sizeof(int));
  
 // run problem this is will total time elapsed for GPU
  
  float gpu_elapsed = gunrock::sample_bfs::run(
-     G, single_source, distances.data().get(), predecessors.data().get(), full_vectors, query_point, k, top_k.data().get());
+     G, single_source, distances.data().get(), predecessors.data().get(), full_vectors, query_point, k, top_k);
  
  // run problem this is will total time elapsed for CPU
  thrust::host_vector<vertex_t> h_distances(n_vertices);

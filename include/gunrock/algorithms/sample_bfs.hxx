@@ -76,6 +76,7 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
   using edge_t = typename problem_t::edge_t;
   using weight_t = typename problem_t::weight_t;
   using frontier_t = typename enactor_t<problem_t>::frontier_t;
+  int i=0;
 
   void prepare_frontier(frontier_t* f,
                         gcuda::multi_context_t& context) override {
@@ -103,6 +104,13 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
     cout<<iteration<<endl;
     this->active_frontier->print();
 
+    //for(int i=0; i<this->active_frontier->get_number_of_elements(); i++){
+      //cout<<this->active_frontier->get_element_at(i);
+    //}
+
+    cout<<this->active_frontier->get_number_of_elements()<<endl;
+    //this->active_frontier->set_element_at(999, 0);
+
     auto search = [distances, single_source, iteration, full_vectors, top_k, query_point, k] __host__ __device__(
                       vertex_t const& source,    // ... source
                       vertex_t const& neighbor,  // neighbor
@@ -113,18 +121,12 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
       // here means that the neighbor is not added to the output frontier, and
       // instead an invalid vertex is added in its place. These invalides (-1 in
       // most cases) can be removed using a filter operator or uniquify.
-      if (distances[neighbor] != std::numeric_limits<vertex_t>::max())
-        return false;
-      else
-        return (math::atomic::cas(
-                    &distances[neighbor],
-                    std::numeric_limits<vertex_t>::max(), iteration + 1) ==
-                    std::numeric_limits<vertex_t>::max());
-
-      // Simpler logic for the above.
-      // auto old_distance =
-      //     math::atomic::min(&distances[neighbor], iteration + 1);
-      // return (iteration + 1 < old_distance);
+      if (distances[neighbor] != std::numeric_limits<vertex_t>::max()){
+         return false;
+      }
+      auto old_distance =
+           math::atomic::min(&distances[neighbor], iteration + 1);
+      return (iteration + 1 < old_distance);
     };
 
     auto remove_invalids =
@@ -134,6 +136,12 @@ struct enactor_t : gunrock::enactor_t<problem_t> {
       // pass them to this lambda function.
       return true;
     };
+
+    auto in_frontier = &(this->frontiers[0]);
+    auto out_frontier = &(this->frontiers[1]);
+
+    in_frontier->print();
+    out_frontier->print();
 
     // Execute advance operator on the provided lambda
     operators::advance::execute<operators::load_balance_t::block_mapped>(
@@ -180,13 +188,13 @@ float run(graph_t& G,
   using result_type = result_t<vertex_t>;
 
   //testing
-  for(int j=0; j<G.get_number_of_vertices()*2; j+=2){
-    cout<<full_vectors[j]<<" ";
-    cout<<full_vectors[j+1]<<" ";
-  }
+  //for(int j=0; j<G.get_number_of_vertices()*2; j+=2){
+  //  cout<<full_vectors[j]<<" ";
+  //  cout<<full_vectors[j+1]<<" ";
+  //}
 
-  cout<<endl<<k<<endl;
-  cout<<query_point[0]<<query_point[1]<<endl;
+  //cout<<endl<<k<<endl;
+  //cout<<query_point[0]<<query_point[1]<<endl;
 
   param_type param(single_source, query_point, k, full_vectors);
   result_type result(distances, predecessors, top_k, G.get_number_of_vertices());
